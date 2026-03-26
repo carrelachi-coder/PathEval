@@ -1,0 +1,4 @@
+﻿doctor_name,image_id,score_histology,score_cytology,score_microenvironment,comment,checked_features,qa_accuracy,qa_correct_count,qa_total_count,timestamp
+qinxin,220_qwen,3,3,3,,[],0.0,0,5,2026-01-24 09:32:48
+qinxin,220_gemini,3,3,3,,[],0.0,0,5,2026-01-24 09:32:54
+qinxin,220_openai,3,3,3,,[],0.0,0,5,2026-01-24 09:32:59

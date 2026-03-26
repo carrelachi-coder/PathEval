@@ -1,0 +1,32 @@
+[
+  {
+    "element_type": "tissue_architecture",
+    "question": "病理图像中的上皮被覆假复层纤毛柱状上皮，显示黏膜表面层次结构完整。",
+    "choices": ["是", "否"],
+    "answer": "是"
+  },
+  {
+    "element_type": "cellular_feature",
+    "question": "间质显示显著水肿，组织间隙明显扩张。",
+    "choices": ["是", "否"],
+    "answer": "是"
+  },
+  {
+    "element_type": "cellular_feature",
+    "question": "间质中有大量嗜酸性粒细胞浸润。",
+    "choices": ["是", "否"],
+    "answer": "是"
+  },
+  {
+    "element_type": "staining_characteristics",
+    "question": "组织水肿区的细胞间质显示基质淡染、稀疏。",
+    "choices": ["是", "否"],
+    "answer": "是"
+  },
+  {
+    "element_type": "diagnosis_concept",
+    "question": "HE染色图像显示间质水肿和嗜酸性粒细胞浸润，符合鼻息肉的组织学特征。",
+    "choices": ["是", "否"],
+    "answer": "是"
+  }
+]
