@@ -29,11 +29,9 @@ export async function GET(request) {
   let upstream;
   try {
     upstream = await fetch(targetUrl, {
+      cache: "no-store",
       headers: {
         Accept: request.headers.get("accept") || "image/*",
-      },
-      next: {
-        revalidate: 31536000,
       },
     });
   } catch {
