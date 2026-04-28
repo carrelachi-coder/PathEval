@@ -1,8 +1,0 @@
-[server]
-# 开启 gzip 压缩 (双重保险)
-enableCORS = false
-enableXsrfProtection = false
-
-[browser]
-# 减少不必要的收集
-gatherUsageStats = false

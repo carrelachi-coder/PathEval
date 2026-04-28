@@ -5,6 +5,23 @@ node_modules/
 .vercel/
 .env
 .env.*
-.streamlit/secrets.toml
+.streamlit/
+__pycache__/
+*.py[cod]
 *.log
-.vercel
+/.vercel
+
+# Local Python/Streamlit workflow files.
+/*.py
+/scripts/*.py
+/requirements.txt
+/Dockerfile
+
+# Local/generated data and review outputs.
+/data.csv
+/data.csv.backup
+/question_check_cache.pkl
+/questions_spaces_report.csv
+/filter_stats.json
+/resp.json
+/results/
