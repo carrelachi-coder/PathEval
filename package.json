@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "r2:setup": "node scripts/r2-setup.mjs",
+    "r2:migrate": "node scripts/r2-migrate-images.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",
@@ -14,6 +16,7 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1038.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
