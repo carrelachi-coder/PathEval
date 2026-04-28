@@ -7,6 +7,7 @@ import { serializeEvaluationsCsv } from "../lib/records.mjs";
 const EVALUATIONS_KEY = "patheval:evaluations:v1";
 const DOCTOR_KEY = "patheval:doctor:v1";
 const STARTED_KEY = "patheval:started:v1";
+const R2_PUBLIC_BASE_URL = "https://pub-7c46b568179e4640898dada0f351a0f2.r2.dev";
 
 const defaultDraft = {
   scoreHistology: 3,
@@ -53,9 +54,16 @@ const scoringCriteria = {
 };
 
 function imageUrlForDisplay(imagePath) {
-  if (imagePath.startsWith("http") && !imagePath.includes("?")) {
-    return `${imagePath}?imageMogr2/thumbnail/x1000`;
+  try {
+    const imageUrl = new URL(imagePath);
+    const r2BaseUrl = new URL(R2_PUBLIC_BASE_URL);
+    if (imageUrl.origin === r2BaseUrl.origin) {
+      return `/image-proxy?src=${encodeURIComponent(imageUrl.toString())}`;
+    }
+  } catch {
+    return imagePath;
   }
+
   return imagePath;
 }
 
