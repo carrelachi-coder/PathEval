@@ -1,1 +1,10 @@
 venv/
+node_modules/
+.next/
+.npm-cache/
+.vercel/
+.env
+.env.*
+.streamlit/secrets.toml
+*.log
+.vercel

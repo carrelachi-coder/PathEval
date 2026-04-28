@@ -1,0 +1,12 @@
+.env
+.env.*
+.streamlit/secrets.toml
+__pycache__/
+.next/
+node_modules/
+.npm-cache/
+results/
+*.log
+data.csv
+data.csv.backup
+question_check_cache.pkl
