@@ -67,9 +67,10 @@ npm test
 
 ## Demo
 
-### Run the Demo on the Included Data
+### Run the Demo
 
-The repository includes `data_filtered.csv`, which is loaded automatically by the Next.js app.
+The public repository does not include the full evaluation CSV files. Add your own
+`data_filtered.csv` in the project root to load cases locally.
 
 ```bash
 npm install
@@ -80,7 +81,9 @@ Then open `http://localhost:3000`.
 
 ### Expected Demo Output
 
-The browser should show the PathEval welcome screen. After entering an evaluator name, the application opens the blind review interface with:
+Without a local CSV, the browser shows an empty-state message. With a local
+`data_filtered.csv`, the browser should show the PathEval welcome screen. After
+entering an evaluator name, the application opens the blind review interface with:
 
 - One pathology image displayed at a time.
 - Case diagnosis and source prompt.
@@ -144,7 +147,7 @@ id,prompt_idx,image_path,model,disease,prompt,questions
 case_001,1,https://example.com/image_001.png,model_a,Example diagnosis,"Generate an H&E pathology image.","[""Feature A"", ""Feature B""]"
 ```
 
-After replacing `data_filtered.csv`, run:
+After adding `data_filtered.csv`, run:
 
 ```bash
 npm run dev
@@ -152,7 +155,7 @@ npm run dev
 
 Open `http://localhost:3000` and verify that the new cases appear in the task list.
 
-The current included `data_filtered.csv` contains 3,509 evaluation records.
+Full evaluation CSV files are kept outside the public repository.
 
 ## Reproduction Instructions
 

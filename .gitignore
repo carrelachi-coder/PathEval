@@ -20,6 +20,9 @@ __pycache__/
 # Local/generated data and review outputs.
 /data.csv
 /data.csv.backup
+/data_filtered.csv
+/data_filtered_r2.csv
+/data_filtered_r2_en.csv
 /question_check_cache.pkl
 /questions_spaces_report.csv
 /filter_stats.json
