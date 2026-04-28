@@ -21,4 +21,11 @@ describe("Vercel evaluation UI", () => {
 
     assert.equal(/(?:currentRecord|record)\.model|Model:|Generation model/u.test(source), false);
   });
+
+  it("routes public R2 image URLs through the same-origin image proxy", async () => {
+    const source = await readFile("src/components/evaluation-app.jsx", "utf8");
+
+    assert.match(source, /\/image-proxy\?src=/u);
+    assert.doesNotMatch(source, /imageMogr2\/thumbnail/u);
+  });
 });
