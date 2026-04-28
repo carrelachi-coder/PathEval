@@ -6,6 +6,7 @@ import { serializeEvaluationsCsv } from "../lib/records.mjs";
 
 const EVALUATIONS_KEY = "patheval:evaluations:v1";
 const DOCTOR_KEY = "patheval:doctor:v1";
+const STARTED_KEY = "patheval:started:v1";
 
 const defaultDraft = {
   scoreHistology: 3,
@@ -13,6 +14,42 @@ const defaultDraft = {
   scoreMicroenvironment: 3,
   checkedFeatures: [],
   comment: "",
+};
+
+const scoringCriteria = {
+  histology: {
+    title: "Histology structure",
+    focus: "Low-power overall architecture and anatomic plausibility.",
+    levels: [
+      ["1", "Non-biologic structure", "The image is unacceptable and structurally chaotic."],
+      ["2", "Wrong organ pattern", "It resembles tissue, but not the target organ or lesion."],
+      ["3", "Uncertain structure", "The tissue type is plausible, but the lesion pattern is vague."],
+      ["4", "Mostly accurate", "Main structures match the report with reasonable background features."],
+      ["5", "Highly accurate", "Clear, layered architecture with typical lesion morphology."],
+    ],
+  },
+  cytology: {
+    title: "Cytology features",
+    focus: "High-power cellular detail and biologic realism.",
+    levels: [
+      ["1", "Implausible proportions", "Cell size and nuclear-cytoplasmic relationships are biologically wrong."],
+      ["2", "Smearing or artifacts", "Cells are blurred or noise-like with no usable morphology."],
+      ["3", "Generic cells", "Cells are plausible but miss the specific features in the report."],
+      ["4", "Feature match", "Atypia and key cellular details are visible and report-consistent."],
+      ["5", "Excellent detail", "Chromatin texture, nuclear membranes, and cytoplasm are highly realistic."],
+    ],
+  },
+  microenvironment: {
+    title: "Microenvironment",
+    focus: "Cell arrangement, polarity, stromal response, and tissue interaction.",
+    levels: [
+      ["1", "Disordered stacking", "Cells are randomly scattered or overlapping without tissue polarity."],
+      ["2", "Poor polarity", "The arrangement is incorrect and lacks cohesive organization."],
+      ["3", "Isolated tumor", "Tumor cells are present, but stromal or inflammatory interaction is weak."],
+      ["4", "Logical interaction", "Cell adhesion and stromal reaction are reasonable."],
+      ["5", "Complex ecosystem", "Tumor-stroma interaction is rich and convincing, with supporting cells where appropriate."],
+    ],
+  },
 };
 
 function imageUrlForDisplay(imagePath) {
@@ -34,8 +71,32 @@ function downloadTextFile(filename, content) {
   URL.revokeObjectURL(url);
 }
 
+function ScoreHelp({ criteria }) {
+  return (
+    <span className="score-help">
+      <button
+        aria-label={`${criteria.title} scoring criteria`}
+        className="help-button"
+        type="button"
+      >
+        ?
+      </button>
+      <span className="score-tooltip" role="tooltip">
+        <strong>{criteria.title}</strong>
+        <span>{criteria.focus}</span>
+        {criteria.levels.map(([score, label, description]) => (
+          <span className="criteria-line" key={score}>
+            <b>{score} - {label}:</b> {description}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
 export function EvaluationApp({ records }) {
   const [doctorName, setDoctorName] = useState("");
+  const [hasStarted, setHasStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [evaluations, setEvaluations] = useState({});
   const [draft, setDraft] = useState(defaultDraft);
@@ -51,6 +112,10 @@ export function EvaluationApp({ records }) {
 
     if (savedDoctor) {
       setDoctorName(savedDoctor);
+    }
+
+    if (window.localStorage.getItem(STARTED_KEY) === "true") {
+      setHasStarted(true);
     }
 
     if (savedEvaluations) {
@@ -90,9 +155,17 @@ export function EvaluationApp({ records }) {
     return (
       <main className="empty-state">
         <h1>PathEval</h1>
-        <p>没有读取到评估数据，请确认 data_filtered.csv 已包含 image_path 和 id 列。</p>
+        <p>No evaluation records were found. Check that data_filtered.csv includes image_path and id columns.</p>
       </main>
     );
+  }
+
+  function startEvaluation() {
+    if (!doctorName.trim()) {
+      return;
+    }
+    window.localStorage.setItem(STARTED_KEY, "true");
+    setHasStarted(true);
   }
 
   function updateDraft(patch) {
@@ -126,7 +199,7 @@ export function EvaluationApp({ records }) {
       ...previous,
       [currentRecord.id]: nextEvaluation,
     }));
-    setLastSaved("已保存到本机浏览器，可随时导出 CSV。");
+    setLastSaved("Saved in this browser. You can export the CSV at any time.");
 
     if (goNext) {
       const nextUnfinished = records.findIndex(
@@ -143,16 +216,98 @@ export function EvaluationApp({ records }) {
   function exportCsv() {
     const csv = serializeEvaluationsCsv(currentEvaluationList);
     const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-    const safeName = doctorName.trim().replace(/[^\w\u4e00-\u9fa5-]+/g, "_") || "anonymous";
+    const safeName = doctorName.trim().replace(/[^\w-]+/g, "_") || "anonymous";
     downloadTextFile(`evaluation_${safeName}_${date}.csv`, csv);
   }
 
   function clearLocalEvaluations() {
-    if (window.confirm("确定清空本机浏览器中的评估记录吗？此操作不会影响其他设备。")) {
+    if (window.confirm("Clear the evaluation records stored in this browser? This will not affect other devices.")) {
       setEvaluations({});
       setDraft(defaultDraft);
-      setLastSaved("本机评估记录已清空。");
+      setLastSaved("Local evaluation records have been cleared.");
     }
+  }
+
+  if (!hasStarted) {
+    return (
+      <main className="welcome-page">
+        <section className="welcome-hero">
+          <p className="eyebrow">Blind pathology image review</p>
+          <h1>PathEval</h1>
+          <p>
+            Review AI-generated pathology images using structured quality scores and a
+            feature checklist. The image generation model is intentionally hidden during
+            evaluation.
+          </p>
+
+          <label className="field welcome-name">
+            <span>Evaluator name</span>
+            <input
+              autoComplete="name"
+              onChange={(event) => setDoctorName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  startEvaluation();
+                }
+              }}
+              placeholder="Enter your name"
+              value={doctorName}
+            />
+          </label>
+
+          <button
+            className="button primary start-button"
+            disabled={!doctorName.trim()}
+            onClick={startEvaluation}
+            type="button"
+          >
+            Start evaluation
+          </button>
+        </section>
+
+        <section className="welcome-grid" aria-label="Evaluation guide">
+          <div className="welcome-panel">
+            <h2>Workflow</h2>
+            <ol>
+              <li>Enter your evaluator name before starting.</li>
+              <li>Score each image from 1 to 5 in the three dimensions.</li>
+              <li>Hover or focus the question-mark icon beside each score to review the scoring criteria.</li>
+              <li>In the checklist, select only features that are truly visible in the pathology image.</li>
+              <li>You can revisit completed images from the left task list and update your evaluation.</li>
+              <li>Export the CSV after finishing all assigned images.</li>
+            </ol>
+          </div>
+
+          <div className="welcome-panel">
+            <h2>For clinicians</h2>
+            <ul>
+              <li>This is a blind review. Do not infer or look for the generating model.</li>
+              <li>Stay objective and judge only image quality and prompt-feature agreement.</li>
+              <li>Checklist selections affect the calculated feature-match accuracy.</li>
+              <li>Your work is saved locally in this browser until you export or clear it.</li>
+            </ul>
+          </div>
+
+          <div className="welcome-panel span-two">
+            <h2>Scoring dimensions</h2>
+            <div className="dimension-grid">
+              <div>
+                <h3>Histology</h3>
+                <p>Overall low-power architecture and target-organ plausibility.</p>
+              </div>
+              <div>
+                <h3>Cytology</h3>
+                <p>High-power cell detail, nuclear features, and biologic realism.</p>
+              </div>
+              <div>
+                <h3>Microenvironment</h3>
+                <p>Cell polarity, stromal response, and tumor-tissue interaction.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -160,20 +315,20 @@ export function EvaluationApp({ records }) {
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1 className="brand">PathEval</h1>
-          <p className="subtitle">AI 生成病理图像评估</p>
+          <p className="subtitle">Blind pathology image evaluation</p>
           <label className="field">
-            <span>评估者姓名</span>
+            <span>Evaluator name</span>
             <input
               value={doctorName}
               onChange={(event) => setDoctorName(event.target.value)}
-              placeholder="请输入姓名"
+              placeholder="Enter your name"
             />
           </label>
         </div>
 
         <div className="progress-box">
           <div className="progress-row">
-            <span>评估进度</span>
+            <span>Progress</span>
             <strong>
               {evaluatedCount}/{records.length}
             </strong>
@@ -183,7 +338,7 @@ export function EvaluationApp({ records }) {
           </div>
         </div>
 
-        <div className="task-list" aria-label="任务列表">
+        <div className="task-list" aria-label="Task list">
           {records.map((record, index) => {
             const isDone = Boolean(evaluations[record.id]);
             return (
@@ -196,10 +351,10 @@ export function EvaluationApp({ records }) {
                 <span>{isDone ? "✓" : "·"}</span>
                 <span>
                   <span className="task-title">
-                    {index + 1}. {record.disease || record.id}
+                    Case {index + 1}
                   </span>
                   <span className="task-meta">
-                    {record.model} · {record.id}
+                    {isDone ? "Completed" : "Pending"}
                   </span>
                 </span>
               </button>
@@ -212,9 +367,9 @@ export function EvaluationApp({ records }) {
         <div className="topbar">
           <div>
             <p className="eyebrow">Image {currentIndex + 1}</p>
-            <h2 className="page-title">{currentRecord.disease || "未命名病种"}</h2>
+            <h2 className="page-title">Case {currentIndex + 1}</h2>
             <p className="subtitle">
-              ID: {currentRecord.id} · Model: {currentRecord.model || "unknown"}
+              Blind review item. AI source details are hidden.
             </p>
           </div>
           <div className="actions">
@@ -224,7 +379,7 @@ export function EvaluationApp({ records }) {
               onClick={exportCsv}
               type="button"
             >
-              下载 CSV
+              Export CSV
             </button>
             <button
               className="button"
@@ -232,7 +387,7 @@ export function EvaluationApp({ records }) {
               onClick={clearLocalEvaluations}
               type="button"
             >
-              清空本机记录
+              Clear local records
             </button>
           </div>
         </div>
@@ -240,7 +395,7 @@ export function EvaluationApp({ records }) {
         <section className="workspace">
           <div className="panel">
             <div className="panel-header">
-              <h3 className="panel-title">病理图像</h3>
+              <h3 className="panel-title">Pathology image</h3>
             </div>
             <div className="panel-body">
               <div className="image-frame">
@@ -253,31 +408,40 @@ export function EvaluationApp({ records }) {
 
               <div className="info-grid">
                 <div className="info-item">
-                  <div className="info-label">病种</div>
-                  <div className="info-value">{currentRecord.disease || "未知"}</div>
+                  <div className="info-label">Case diagnosis</div>
+                  <div className="info-value">{currentRecord.disease || "Not provided"}</div>
                 </div>
                 <div className="info-item">
-                  <div className="info-label">生成模型</div>
-                  <div className="info-value">{currentRecord.model || "未知"}</div>
+                  <div className="info-label">Review status</div>
+                  <div className="info-value">
+                    {evaluations[currentRecord.id] ? "Previously evaluated" : "Not yet evaluated"}
+                  </div>
                 </div>
               </div>
 
               <div className="prompt">
-                <strong>提示词：</strong>
-                {currentRecord.prompt || "无"}
+                <strong>Source prompt: </strong>
+                {currentRecord.prompt || "Not provided"}
               </div>
             </div>
           </div>
 
           <div className="panel">
             <div className="panel-header">
-              <h3 className="panel-title">评分与特征符合度</h3>
+              <h3 className="panel-title">Scores and feature match</h3>
             </div>
             <div className="panel-body">
+              <p className="guidance">
+                Select checklist items only when the feature is actually visible in the
+                pathology image.
+              </p>
               <div className="score-grid">
                 <div className="score-row">
                   <label>
-                    组织学结构
+                    <span className="score-label">
+                      Histology structure
+                      <ScoreHelp criteria={scoringCriteria.histology} />
+                    </span>
                     <input
                       max="5"
                       min="1"
@@ -293,7 +457,10 @@ export function EvaluationApp({ records }) {
 
                 <div className="score-row">
                   <label>
-                    细胞学特征
+                    <span className="score-label">
+                      Cytology features
+                      <ScoreHelp criteria={scoringCriteria.cytology} />
+                    </span>
                     <input
                       max="5"
                       min="1"
@@ -309,7 +476,10 @@ export function EvaluationApp({ records }) {
 
                 <div className="score-row">
                   <label>
-                    微环境表现
+                    <span className="score-label">
+                      Microenvironment
+                      <ScoreHelp criteria={scoringCriteria.microenvironment} />
+                    </span>
                     <input
                       max="5"
                       min="1"
@@ -339,16 +509,16 @@ export function EvaluationApp({ records }) {
                     </label>
                   ))
                 ) : (
-                  <p className="muted">当前图片没有可勾选特征。</p>
+                  <p className="muted">No checklist features are available for this image.</p>
                 )}
               </div>
 
               <label className="field">
-                <span>补充备注</span>
+                <span>Optional comments</span>
                 <textarea
                   className="comment-box"
                   onChange={(event) => updateDraft({ comment: event.target.value })}
-                  placeholder="可选"
+                  placeholder="Add comments about specific image issues"
                   value={draft.comment}
                 />
               </label>
@@ -356,7 +526,7 @@ export function EvaluationApp({ records }) {
               <div className="form-footer">
                 <span className="status-text">
                   {lastSaved ||
-                    (doctorName.trim() ? "填写完成后保存。" : "请先填写评估者姓名。")}
+                    (doctorName.trim() ? "Save when the evaluation is complete." : "Enter an evaluator name first.")}
                 </span>
                 <button
                   className="button primary"
@@ -364,7 +534,7 @@ export function EvaluationApp({ records }) {
                   onClick={() => saveEvaluation(true)}
                   type="button"
                 >
-                  保存并下一张
+                  Save and next
                 </button>
               </div>
             </div>
